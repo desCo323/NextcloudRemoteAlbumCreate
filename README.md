@@ -157,7 +157,7 @@ Hinweis: --quiet und --verbose schließen sich gegenseitig aus – gib immer nur
   --remote  "Photos/"
 
 ./remote2albums.py \
-  --url https://chaosnet.me \
+  --url https://meinecloud.com \
   --user appusername \
   --password 3234-2342342342-34wjo \
   --remote "SofortUpload/Pictures" \

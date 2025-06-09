@@ -139,13 +139,30 @@ chmod +x remote2albums.py
 ---
 
 ## ▶️ Benutzung
+Albumnamen + ausführlicher Ausgabe:
+Zweck	Albumnamen	Konsolen-Meldungen	Beispielaufruf
+Standardmodus	kurz	Albumzeile + Abschlussstatistik	./remote2albums.py --url https://CLOUD --user USER --password PASS --remote "SofortUpload/Pictures"
+Vollständig lautlos	kurz	nur Schlusszeile	… --quiet
+Ausführlich (jede Datei)	kurz	jede Datei	… --verbose
+Langer Albumnamen	ganzer Pfad	Albumzeile + Schluss	… --album-name long
+Lang + ausführlich	ganzer Pfad	jede Datei	… --album-name long --verbose
+Lang + völlig lautlos	ganzer Pfad	nur Schluss	… --album-name long --quiet
 
+Hinweis: --quiet und --verbose schließen sich gegenseitig aus – gib immer nur einen der beiden Schalter an.
 ```bash
 ./remote2albums.py \
   --url     https://cloud.example.com \
   --user    alice \
   --password "APP-PASSWORT" \
   --remote  "Photos/"
+
+./remote2albums.py \
+  --url https://chaosnet.me \
+  --user appusername \
+  --password 3234-2342342342-34wjo \
+  --remote "SofortUpload/Pictures" \
+  --album-name long \
+  --verbose
 ```
 
 | Parameter | Bedeutung |

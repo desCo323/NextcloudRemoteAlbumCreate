@@ -3,19 +3,78 @@
 
 *Automatisiert das Anlegen von Alben in der Nextcloud-Photos-App aus bereits vorhandenen Ordnern – ideal für Umsteiger von anderen Systemen*
 
+# remote2albums.py  
+**_“Wenn 100 Ordner plötzlich keine Alben sind – macht sie remote2albums.py in Minuten sichtbar.”_**
+
 ---
 
-## 🧐 Problemstellung
+## 0 · Kurzfassung
 
-Beim Wechsel zu **Nextcloud Photos** stellen viele fest, dass ihre vorhandenen Verzeichnisstrukturen **nicht** als Alben erkannt werden:
+> **Problem:** Nach der Migration zu Nextcloud liegen Tausende Fotos bereits im Cloud-Speicher, erscheinen aber in der **Photos-App nicht als Alben**.  
+> **Lösung:** **remote2albums.py** durchsucht diese Ordner direkt auf dem Server, baut aus jedem Unterordner ein echtes Nextcloud-Album und **verlinkt** die Bilder – ohne Upload, ohne Duplikate, ohne Risiko.
 
-| Typisches Szenario | Ergebnis in Photos |
-| :----------------- | :----------------- |
-| **Google Takeout**&nbsp;– Takeout legt jeden Tag/Monat als eigenen Ordner an | Keine Alben, nur tiefe Ordnerbäume |
-| **Android „SofortUpload“ / iOS Camera Upload** – Ordner nach Jahr / Monat / Tag | Ebenfalls keine Alben sichtbar |
-| **NAS- oder DigiCam-Importe** (`urlaub/bali/tag3/img001.jpg`) | Photos zeigt nur die Wurzelordner |
+---
 
-Die Photos-App erzeugt ein „Album“ erst dann, wenn intern ein spezieller DAV-Knoten existiert – das geschieht nur per Web-GUI. Hunderte Ordner manuell anzuklicken ist unpraktisch.
+## 1 · Das typische Schmerz-Szenario
+
+| Migrationsquelle | Ordnerstruktur nach dem Import | Ergebnis in Nextcloud Photos |
+|------------------|--------------------------------|------------------------------|
+| **Google Takeout** | `Google Photos/2023-05-19/IMG_...` | _keine Alben_ |
+| **Android / iOS Sofort-Upload** | `SofortUpload/2024/06/01/` | _keine Alben_ |
+| **iCloud Photo Library** (manueller Export) | `iCloud/2022-09-Urlaub/Tag3/` | _keine Alben_ |
+| **NAS / DigiCam** | `Fotos/USA/NY/TimesSquare/` | _keine Alben_ |
+
+*Nextcloud Photos* erkennt nur Ordner, die über die Web-GUI als Album registriert wurden.  
+> **Händisch 200 Ordner anklicken?** Unrealistisch.  
+> **Alles neu hochladen?** Zeit‐ und Speicherfresser.  
+
+---
+
+## 2 · Was remote2albums.py konkret tut
+
+1. **Rekursiv scannen**  
+   Über WebDAV `PROPFIND` liest es alle Unterordner eines frei wählbaren Pfads.
+
+2. **Album erzeugen** (`MKCOL`)  
+   Jeder Ordner wird in `/remote.php/dav/photos/<user>/albums/` als echtes Album angelegt.
+
+3. **Bilder verlinken** (`COPY`)  
+   Statt Dateien zu kopieren wird nur ein **WebDAV-Link** gesetzt.  
+   *⟶ Kein zusätzlicher Speicher, kein erneuter Upload.*
+
+4. **Idempotent laufen**  
+   Läuft das Skript erneut, ignoriert es vorhandene Alben (`405`) und Links (`204/409`).  
+   *⟶ Sicheres Batch-Tool, auch als Cron-Job.*
+
+5. **Nur Bilder**  
+   Standardmäßig `.jpg / .png / .webp / …` (Liste erweiterbar).
+
+---
+
+## 3 · Warum es so hilfreich ist
+
+| Mehrwert | Erklärung |
+|----------|-----------|
+| **Spart Zeit** | Wandelt Hunderte–Tausende Ordner in  Minuten in Alben um. |
+| **Kein Daten-Wanderspeicher** | Bilder bleiben _wo sie sind_; nur Links werden erzeugt. |
+| **Zero-Client** | Läuft auf dem Server oder per SSH – kein Desktop-Sync nötig. |
+| **Migrations-Booster** | Ideal nach Umzügen um aus den Ordnern in Nectcloud Alben zu machen. |
+| **Wiederholbar & sicher** | Erneuter Lauf ergänzt nur Neues, nichts wird gelöscht oder überschrieben. |
+| **Einfach automatisierbar** | Als Cron-Job einsetzbar ➜ neue Upload-Ordner werden regelmäßig zu Alben. |
+
+---
+
+## 4 · Funktionsübersicht (Technik)
+
+| HTTP-Verb | Endpunkt | Zweck |
+|-----------|----------|-------|
+| `PROPFIND` | `/dav/files/<user>/<REMOTE_PATH>` | Ordner‐ und Dateiliste abfragen |
+| `MKCOL`   | `/dav/photos/<user>/albums/<AlbumName>` | Album anlegen (oder 405, falls schon da) |
+| `COPY`    | `<file>` → `<album>/<filename>` | Datei **verlinken** (201 neu, 204/409 schon vorhanden) |
+
+Alle Operationen benutzen Standard-WebDAV; keine internen Nextcloud-Hacks.
+
+---
 
 ---
 

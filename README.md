@@ -19,14 +19,17 @@
 
 | Migrationsquelle | Ordnerstruktur nach dem Import | Ergebnis in Nextcloud Photos |
 |------------------|--------------------------------|------------------------------|
-| **Google Takeout** | `Google Photos/2023-05-19/IMG_...` | _keine Alben_ |
-| **Android / iOS Sofort-Upload** | `SofortUpload/2024/06/01/` | _keine Alben_ |
-| **iCloud Photo Library** (manueller Export) | `iCloud/2022-09-Urlaub/Tag3/` | _keine Alben_ |
+| **AlterHoster** | ` Photos/2023-05-19/IMG_...` | _keine Alben_ |
+| **AusUploads** | `SofortUpload/2024/06/01/` | _keine Alben_ |
+| ** Photo ** (manueller Export) | `Cloud/2022-09-Urlaub/Tag3/` | _keine Alben_ |
 | **NAS / DigiCam** | `Fotos/USA/NY/TimesSquare/` | _keine Alben_ |
 
 *Nextcloud Photos* erkennt nur Ordner, die über die Web-GUI als Album registriert wurden.  
 > **Händisch 200 Ordner anklicken?** Unrealistisch.  
-> **Alles neu hochladen?** Zeit‐ und Speicherfresser.  
+> **Alles neu hochladen?** Zeit‐ und Speicherfresser.
+>
+> Nach dem Script:
+> Das Script erstellt aus dem Pfad Albennamen
 
 ---
 

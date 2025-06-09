@@ -67,8 +67,12 @@ chmod +x remote2albums.py
 
 2. **Startordner festlegen**  
    Beispiele  
-   *Google Takeout*: `Google Photos`  
-   *Android*: `SofortUpload/Pictures`
+   Suche den Startordner ab dem du die alben erstellen willst:
+   Beispiel:
+   /Photos/Urlaube
+                  /Urlaub2012
+                  /Urlaub2013
+   Ergebniss: Alben: Urlaub2012 Urlaub2013
 
 ---
 
@@ -79,7 +83,7 @@ chmod +x remote2albums.py
   --url     https://cloud.example.com \
   --user    alice \
   --password "APP-PASSWORT" \
-  --remote  "SofortUpload/Pictures"
+  --remote  "Photos/"
 ```
 
 | Parameter | Bedeutung |
@@ -134,7 +138,7 @@ Anschließend **Photos öffnen → F5**: Die Alben erscheinen sofort.
 
 ## 📜 Lizenz
 
-Dieses Projekt steht unter der **MIT-Lizenz** – Details siehe [`LICENSE`](LICENSE).
+Diese Software ist ein reines Experiment ohne jede Garantie!
 
 ---
 

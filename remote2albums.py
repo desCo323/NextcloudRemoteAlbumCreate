@@ -1,28 +1,25 @@
 #!/usr/bin/env python3
 """
-remote2albums.py  –  Version 3
-Erzeugt für jeden Unterordner unter <REMOTE_PATH> ein Album
-und verlinkt alle Bilddateien dorthin – rein serverseitig.
-
-Aufrufbeispiel:
-  ./remote2albums.py --url https://chaosnet.me \
-      --user frithjofe --password APPPASS \
-      --remote "SofortUpload/Pictures"
+remote2albums.py  –  Version 4
+Erzeugt Alben in Nextcloud Photos aus Ordnern des Files-Speichers.
+Neue Optionen:
+  --quiet        => keinerlei Einzelmeldungen
+  --verbose      => alle verlinkten Dateien ausgeben
+  --album-name   => short (Default) | long
 """
 
 import argparse, urllib.parse, xml.etree.ElementTree as ET
 from collections import Counter, deque
 from pathlib import PurePosixPath
 import requests
+import sys
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp",
            ".heic", ".tif", ".tiff", ".bmp", ".raw"}
 NS = {"d": "DAV:"}
 
 
-# --------------------------------------------------------------------------- #
-# DAV-Hilfsfunktionen                                                         #
-# --------------------------------------------------------------------------- #
+# ---------- DAV-Hilfsroutinen ------------------------------------------------
 def propfind(sess, url, depth="1"):
     body = ('<?xml version="1.0"?><d:propfind xmlns:d="DAV:">'
             '<d:prop><d:resourcetype/></d:prop></d:propfind>')
@@ -34,7 +31,7 @@ def propfind(sess, url, depth="1"):
 
 def list_children(sess, url, root_url):
     base = url.rstrip("/") + "/"
-    for rsp in propfind(sess, url, "1").findall("d:response", NS):
+    for rsp in propfind(sess, url).findall("d:response", NS):
         href = urllib.parse.unquote(rsp.find("d:href", NS).text)
         if href == base:
             continue
@@ -57,59 +54,66 @@ def walk_dirs(sess, root_dir, root_url):
 def mkcol(sess, url):
     r = sess.request("MKCOL", url)
     if r.status_code == 201:
-        return True          # neu
+        return True
     if r.status_code == 405:
-        return False         # existiert
+        return False
     raise RuntimeError(f"MKCOL {url} → {r.status_code}")
 
 
 def copy(sess, src, dst):
-    """
-    Verlinkt eine Datei ins Album.
-    - 201 Created   → neuer Link
-    - 204 NoContent → identischer Link existiert bereits
-    - 409 Conflict  → Datei gleichen Namens schon verlinkt
-    """
     r = sess.request("COPY", src, headers={"Destination": dst})
-    if r.status_code in (201, 204, 409):
+    if r.status_code in (201, 204, 409, 403):
         return
     raise RuntimeError(f"COPY {src} → {r.status_code}")
 
 
-def is_image(href):
-    return PurePosixPath(href).suffix.lower() in IMG_EXT
+def is_image(href): return PurePosixPath(href).suffix.lower() in IMG_EXT
 
 
-# --------------------------------------------------------------------------- #
-# Hauptprogramm                                                               #
-# --------------------------------------------------------------------------- #
+# ---------- Hauptprogramm ----------------------------------------------------
 def main():
     ap = argparse.ArgumentParser(
-        description="Erzeugt Alben aus Ordnern im Nextcloud-Files-Storage.")
-    ap.add_argument("--url", required=True, help="Basis-URL, z. B. https://chaosnet.me")
+        description="Erzeugt Nextcloud-Alben aus Ordnern")
+    ap.add_argument("--url", required=True)
     ap.add_argument("--user", required=True)
     ap.add_argument("--password", required=True)
     ap.add_argument("--remote", required=True,
-                    help="Pfad unterhalb 'Dateien', z. B. SofortUpload/Pictures")
+                    help="Pfad relativ zu 'Dateien', z. B. SofortUpload/Pictures")
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument("--quiet", action="store_true",
+                   help="Unterdrückt alle Einzelmeldungen")
+    g.add_argument("--verbose", action="store_true",
+                   help="Zeigt jede verlinkte Datei")
+    ap.add_argument("--album-name", choices=["short", "long"], default="short",
+                    help="short = letzter Ordnername (Default); "
+                         "long = kompletter Pfad mit '--' als Trenner")
     args = ap.parse_args()
 
-    root_url   = args.url.rstrip("/")
+    root_url = args.url.rstrip("/")
     files_root = f"{root_url}/remote.php/dav/files/{args.user}/{args.remote.strip('/')}"
     albums_root = f"{root_url}/remote.php/dav/photos/{args.user}/albums"
 
     sess = requests.Session(); sess.auth = (args.user, args.password)
     stats = Counter()
 
-    for dir_url in walk_dirs(sess, files_root, root_url):
-        # 1. relativen Pfad ab files_root ermitteln
-        rel_path = PurePosixPath(dir_url).relative_to(files_root)
+    def log(msg, force=False):
+        if args.quiet and not force:
+            return
+        if args.verbose or force:
+            print(msg)
 
-        # 2. Slashes in einen gut lesbaren Trenner umwandeln
-        album = str(rel_path).replace('/', ' - ')   # z. B. "Urlaub2024 -- Tag3"
-        #album = PurePosixPath(dir_url).name
-        album_url = f"{albums_root}/{urllib.parse.quote(album, safe='')}"
+    for dir_url in walk_dirs(sess, files_root, root_url):
+        # Albumnamen bestimmen
+        if args.album_name == "short":
+            album_name = PurePosixPath(dir_url).name
+        else:  # long
+            rel_path = PurePosixPath(dir_url).relative_to(files_root)
+            album_name = str(rel_path).replace('/', ' - ')
+
+        album_url = f"{albums_root}/{urllib.parse.quote(album_name, safe='')}"
         if mkcol(sess, album_url):
             stats["alben"] += 1
+            log(f"[Album] {album_name}", force=not args.quiet)
 
         for href, is_dir in list_children(sess, dir_url, root_url):
             if is_dir or not is_image(href):
@@ -117,9 +121,14 @@ def main():
             dst = f"{album_url}/{urllib.parse.quote(PurePosixPath(href).name)}"
             copy(sess, href, dst)
             stats["bilder"] += 1
+            if args.verbose:
+                print(f"  ↳ {PurePosixPath(href).name}")
 
-    print(f"✓ {stats['alben']} Alben erstellt, {stats['bilder']} Bilder verlinkt.")
+    print(f"✓ {stats['alben']} Alben, {stats['bilder']} Bilder verlinkt.")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit("\nAbgebrochen durch Benutzer.")

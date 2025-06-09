@@ -1,7 +1,7 @@
 # remote2albums.py  
 **Nextcloud Album Auto-Creator**
 
-*Automatisiert das Anlegen von Alben in der Nextcloud-Photos-App aus bereits vorhandenen Ordnern – ideal für Umsteiger von Google Takeout, iCloud Photos, Android „Sofort-Upload“, DigiCam-Importen u. v. m.*
+*Automatisiert das Anlegen von Alben in der Nextcloud-Photos-App aus bereits vorhandenen Ordnern – ideal für Umsteiger von anderen Systemen*
 
 ---
 

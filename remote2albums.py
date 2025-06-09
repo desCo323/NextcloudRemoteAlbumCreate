@@ -123,15 +123,18 @@ def main():
 
             if code == 201:
                 stats["verlinkt"] += 1
-                log(f"  ✔ 201  verlinkt  {fname}")
-            elif code in (204, 409, 403):
-                reason = {204: "identisch", 409: "Name existiert", 403: "link existiert"}[code]
+                log(f"  ✔ 201  verlinkt   {fname}")
+            elif code in (204, 403, 409, 404):
+                reason = {204: "identisch",
+                          403: "link existiert",
+                          409: "Name existiert",
+                          404: "Quelle fehlt"}[code]
                 log(f"  • {code}  skip ({reason}) {fname}")
             else:
-                log(f"  ✖ {code}  Fehler  {fname}")
+                log(f"  ✖ {code}  unbekannt  {fname}")
                 raise RuntimeError(f"COPY {href} → {code}")
 
-    print(f"\n✓ {stats['alben']} Alben neu, {stats['verlinkt']} Medien verlinkt.")
+                print(f"\n✓ {stats['alben']} Alben neu, {stats['verlinkt']} Medien verlinkt.")
 
 
 if __name__ == "__main__":
